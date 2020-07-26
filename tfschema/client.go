@@ -38,9 +38,9 @@ type Client interface {
 }
 
 // NewClient creates a new Client instance.
-func NewClient(providerName string) (Client, error) {
+func NewClient(providerName string, pluginDirectories []string) (Client, error) {
 	// First, try to connect by GRPC protocol (version 5)
-	client, err := NewGRPCClient(providerName)
+	client, err := NewGRPCClient(providerName, pluginDirectories)
 	if err == nil {
 		return client, nil
 	}
@@ -50,7 +50,7 @@ func NewClient(providerName string) (Client, error) {
 	// but it doesn't seems to work with old providers.
 	// We guess it is for Terraform v0.11 to connect to the latest provider.
 	// So we implement our own fallback logic here.
-	client, err = NewNetRPCClient(providerName)
+	client, err = NewNetRPCClient(providerName, pluginDirectories)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to NewClient: %s", err)
 	}
@@ -59,8 +59,8 @@ func NewClient(providerName string) (Client, error) {
 }
 
 // findPlugin finds a plugin with the name specified in the arguments.
-func findPlugin(pluginType string, pluginName string) (*discovery.PluginMeta, error) {
-	dirs, err := pluginDirs()
+func findPlugin(pluginType string, pluginName string, pluginDirectories []string) (*discovery.PluginMeta, error) {
+	dirs, err := pluginDirs(pluginDirectories)
 	if err != nil {
 		return nil, err
 	}
@@ -79,8 +79,12 @@ func findPlugin(pluginType string, pluginName string) (*discovery.PluginMeta, er
 
 // pluginDirs returns a list of directories to find plugin.
 // This is almost the same as Terraform, but not exactly the same.
-func pluginDirs() ([]string, error) {
+func pluginDirs(additionalPluginDirectories []string) ([]string, error) {
 	dirs := []string{}
+
+	if additionalPluginDirectories != nil {
+		dirs = append(dirs, additionalPluginDirectories...)
+	}
 
 	// current directory
 	dirs = append(dirs, ".")
