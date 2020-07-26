@@ -1,4 +1,4 @@
-module github.com/minamijoyo/tfschema
+module github.com/env0/tfschema
 
 go 1.12
 
